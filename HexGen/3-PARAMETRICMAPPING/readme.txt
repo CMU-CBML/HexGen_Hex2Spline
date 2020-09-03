@@ -1,0 +1,1 @@
+cmake use link time code generation in whole program optimization visual studio default
