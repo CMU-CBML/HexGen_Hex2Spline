@@ -1,0 +1,6 @@
+$# LS-PrePost command file created by LS-PrePost(R) V4.7.0 (Beta) - 12Mar2019 -64bit-Window
+$# Created on Sep-01-2020 (14:06:01)
+open d3plot "F:\LSDYNA_Project\rod\d3eigv"
+ac
+open d3plot "F:\LSDYNA_Project\hepta\d3eigv"
+ac
