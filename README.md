@@ -6,7 +6,7 @@
 
 Developers: Yuxuan Yu, Xiaodong Wei, Angran Li and Yongjie Jessica Zhang.
 
-Model Design and testing: Jialei Ginny Liu, Jeffrey He.
+Model design and testing: Jialei Ginny Liu, Jeffrey He.
 
 ## Related papers
 
