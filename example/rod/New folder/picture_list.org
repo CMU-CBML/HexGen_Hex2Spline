@@ -1,2 +1,0 @@
-rod_model_hex_b4_smooth.png
-rod_model_hex_interior_smooth.png
