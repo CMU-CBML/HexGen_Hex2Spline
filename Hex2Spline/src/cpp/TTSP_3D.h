@@ -520,6 +520,9 @@ public:
 	//void FindEffectiveDOF(vector<BezierElement3D>& bzmesh, vector<int>& aloc, vector<vector<int>>& eIEN);
 	void WriteBezierInfo_AllSpline_LSDYNA(string fn, vector<BezierElement3D>& bzmesh);
 	void WriteBezierInfo_AllSpline_LSDYNA_LocalRefine(string fn, vector<BezierElement3D>& bzmesh);
+
+	void WriteBezierInfo_AllSpline_BEXT2(string fn, vector<BezierElement3D>& bzmesh);
+	void WriteBezierInfo_AllSpline_BEXT2_LocalRefine(string fn, vector<BezierElement3D>& bzmesh);
 	void WriteBezier(const vector<BezierElement3D>& bzmesh, string fn1);
 
 

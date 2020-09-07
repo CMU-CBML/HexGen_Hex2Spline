@@ -1718,6 +1718,8 @@ void kernel::run_coupling_comp(int flag_sharp, int ngref, int nlref, double tol_
 		tt3.Run_Coupling_Comp(fn_in, ngref, nlref, bzmesh, IDBC, gh);
 		//tt3.VisualizeBezierMesh(bzmesh, fn_out);
 		tt3.WriteBezierInfo_AllSpline_LSDYNA_LocalRefine(fn_out + "_BEXT", bzmesh);
+
+		//tt3.WriteBezierInfo_AllSpline_BEXT2_LocalRefine(fn_out + "_BEXT_new", bzmesh);
 		//tt3.WriteBezier_Abaqus_LocalRefine(bzmesh, fn_out + "_ABAQUS");
 	}
 
@@ -1728,7 +1730,9 @@ void kernel::run_coupling_comp(int flag_sharp, int ngref, int nlref, double tol_
 		//tt3.VisualizeBezierMesh(bzmesh, fn_out);
 		tt3.OutputCM(fn_out + "_CM");
 		tt3.WriteBezierInfo_AllSpline_LSDYNA(fn_out + "_BEXT", bzmesh);
-		tt3.WriteBezier_Abaqus(bzmesh, fn_out_GEM);
+
+		//tt3.WriteBezierInfo_AllSpline_BEXT2(fn_out + "_BEXT_new", bzmesh);
+		//tt3.WriteBezier_Abaqus(bzmesh, fn_out_GEM);
 	}
 
 
@@ -1739,9 +1743,14 @@ void kernel::run_coupling_comp(int flag_sharp, int ngref, int nlref, double tol_
 	//tt3.AngranOutputMesh(bzmesh, fn_out + "_Angran_");
 
 	Laplace lap;
-	////lap.Set_Problem_Bezier(IDBC, gh);
-	////lap.Run_Coupling_Bezier(bzmesh, fn_out);
+	//lap.VisualizeLSDYNA(bzmesh, fn_out);
+
 	lap.VisualizeVTK(bzmesh, fn_out);
+
+	//lap.Set_Problem_Bezier(IDBC, gh);
+	//lap.Run_Coupling_Bezier(bzmesh, fn_out);
+	//lap.VisualizeVTK_1(bzmesh, fn_out);
+	
 
 	//LinearElasticity le;
 	//le.Set_Problem_Bezier(IDBC, gh);
@@ -1838,8 +1847,8 @@ void kernel::run_MeshQualityImprove(int mode, int flag_sharp, double tol_sharp, 
 		///					   //iteratively moves each point in the mesh to its mass center.
 		///					   //The input "fn_in" should be changed to the pillowed mesh or leave it be if smoothing is applied without pillowing
 		///					   //It outputs a smoothed mesh, see the commented code "OutputCM" in the definition
-		tt3.Smoothing(opt_par1, opt_par2);
-		//tt3.Smoothing_Angran(opt_par1, opt_par2);
+		//tt3.Smoothing(opt_par1, opt_par2);
+		tt3.Smoothing_Angran(opt_par1, opt_par2);
 		tt3.OutputCM(fn_out + "_smooth");
 		break;
 	case 3: //Optimizing

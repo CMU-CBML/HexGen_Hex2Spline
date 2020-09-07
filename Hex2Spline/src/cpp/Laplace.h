@@ -29,6 +29,9 @@ public:
 	//void Para2Phys(double u, double v, const double cpt[25][3], double pt[3]);
 	void DispCal(double u,double v,double w,const BezierElement3D& bzel,double& disp,double& detJ);
 	void ElementError(const BezierElement3D& bzel, double& L2, double& H1);
+
+	void VisualizeLSDYNA(const vector<BezierElement3D>& bzmesh, string fn);
+
 	void VisualizeVTK(const vector<BezierElement3D>& bzmesh, string fn);
 	void VisualizeVTK_1(const vector<BezierElement3D>& bzmesh, string fn);//with smooth boundary
 	void VisualizeVTK_2(const vector<BezierElement3D>& bzmesh, string fn);//with smooth boundary, remove elemenets

@@ -644,6 +644,355 @@ void Laplace::TotalErrorEstimate(const vector<BezierElement3D>& bzmesh, vector<d
 	}
 }
 
+void Laplace::VisualizeLSDYNA(const vector<BezierElement3D>& bzmesh, string fn)
+{
+	vector<array<double, 3>> spt;//s means sample
+	vector<double> sdisp;
+	//vector<array<double, 3>> sdisp_err;
+	//vector<array<double, 3>> sse;
+	//vector<array<double, 3>> sss;
+	vector<array<int, 8>> sele;
+	vector<double> errL2;
+	vector<array<double, 3>> lpt;//visulize parameter lines
+	vector<array<int, 2>> led;//line connectivity
+	int ns(4), ecount(0);
+	vector<double> su(ns);
+	for (int i = 0; i < ns; i++)
+	{
+		su[i] = double(i) / (double(ns) - 1.);
+	}
+
+	for (unsigned int e = 0; e < bzmesh.size(); e++)
+	{
+		//double errtmp;
+		//ElementError(bzmesh[e],errtmp);
+		//errL2.push_back(sqrt(errtmp));
+		int loc(0);
+		int pstart = spt.size();
+		for (int a = 0; a < ns; a++)
+		{
+			for (int b = 0; b < ns; b++)
+			{
+				for (int c = 0; c < ns; c++)
+				{
+					double pt1[3];
+					double disp, detmp;
+					bzmesh[e].Para2Phys(su[c], su[b], su[a], pt1);
+					//DispCal(su[c], su[b], su[a], bzmesh[e], disp, detmp);
+					array<double, 3> pt = { pt1[0], pt1[1], pt1[2] };
+					spt.push_back(pt);
+					//disp = exact_sol(pt);
+					//sdisp.push_back(disp);
+					if (a == 0 || a == ns - 1 || b == 0 || b == ns - 1)
+					{
+						lpt.push_back(pt);
+					}
+				}
+			}
+		}
+		int nns[2] = { ns*ns*ns, ns*ns };
+		for (int a = 0; a < ns - 1; a++)
+		{
+			for (int b = 0; b < ns - 1; b++)
+			{
+				for (int c = 0; c < ns - 1; c++)
+				{
+					array<int, 8> el;
+					el[0] = pstart + a * nns[1] + b * ns + c;
+					el[1] = pstart + a * nns[1] + b * ns + c + 1;
+					el[2] = pstart + a * nns[1] + (b + 1)*ns + c + 1;
+					el[3] = pstart + a * nns[1] + (b + 1)*ns + c;
+					el[4] = pstart + (a + 1)*nns[1] + b * ns + c;
+					el[5] = pstart + (a + 1)*nns[1] + b * ns + c + 1;
+					el[6] = pstart + (a + 1)*nns[1] + (b + 1)*ns + c + 1;
+					el[7] = pstart + (a + 1)*nns[1] + (b + 1)*ns + c;
+					sele.push_back(el);
+				}
+			}
+		}
+		int lstart = lpt.size();
+		for (int a = 0; a < ns; a++)
+		{
+			double pt1[3];
+			bzmesh[e].Para2Phys(su[a], 0., 0., pt1);
+			array<double, 3> pt = { pt1[0], pt1[1], pt1[2] };
+			lpt.push_back(pt);
+		}
+		for (int a = 0; a < ns - 1; a++)
+		{
+			array<int, 2> ed = { lstart + a, lstart + a + 1 };
+			led.push_back(ed);
+		}
+		lstart = lpt.size();
+		for (int a = 0; a < ns; a++)
+		{
+			double pt1[3];
+			bzmesh[e].Para2Phys(su[a], 1., 0., pt1);
+			array<double, 3> pt = { pt1[0], pt1[1], pt1[2] };
+			lpt.push_back(pt);
+		}
+		for (int a = 0; a < ns - 1; a++)
+		{
+			array<int, 2> ed = { lstart + a, lstart + a + 1 };
+			led.push_back(ed);
+		}
+		lstart = lpt.size();
+		for (int a = 0; a < ns; a++)
+		{
+			double pt1[3];
+			bzmesh[e].Para2Phys(su[a], 0., 1., pt1);
+			array<double, 3> pt = { pt1[0], pt1[1], pt1[2] };
+			lpt.push_back(pt);
+		}
+		for (int a = 0; a < ns - 1; a++)
+		{
+			array<int, 2> ed = { lstart + a, lstart + a + 1 };
+			led.push_back(ed);
+		}
+		lstart = lpt.size();
+		for (int a = 0; a < ns; a++)
+		{
+			double pt1[3];
+			bzmesh[e].Para2Phys(su[a], 1., 1., pt1);
+			array<double, 3> pt = { pt1[0], pt1[1], pt1[2] };
+			lpt.push_back(pt);
+		}
+		for (int a = 0; a < ns - 1; a++)
+		{
+			array<int, 2> ed = { lstart + a, lstart + a + 1 };
+			led.push_back(ed);
+		}
+		lstart = lpt.size();
+		for (int a = 0; a < ns; a++)
+		{
+			double pt1[3];
+			bzmesh[e].Para2Phys(0., su[a], 0., pt1);
+			array<double, 3> pt = { pt1[0], pt1[1], pt1[2] };
+			lpt.push_back(pt);
+		}
+		for (int a = 0; a < ns - 1; a++)
+		{
+			array<int, 2> ed = { lstart + a, lstart + a + 1 };
+			led.push_back(ed);
+		}
+		lstart = lpt.size();
+		for (int a = 0; a < ns; a++)
+		{
+			double pt1[3];
+			bzmesh[e].Para2Phys(1., su[a], 0., pt1);
+			array<double, 3> pt = { pt1[0], pt1[1], pt1[2] };
+			lpt.push_back(pt);
+		}
+		for (int a = 0; a < ns - 1; a++)
+		{
+			array<int, 2> ed = { lstart + a, lstart + a + 1 };
+			led.push_back(ed);
+		}
+		lstart = lpt.size();
+		for (int a = 0; a < ns; a++)
+		{
+			double pt1[3];
+			bzmesh[e].Para2Phys(0., su[a], 1., pt1);
+			array<double, 3> pt = { pt1[0], pt1[1], pt1[2] };
+			lpt.push_back(pt);
+		}
+		for (int a = 0; a < ns - 1; a++)
+		{
+			array<int, 2> ed = { lstart + a, lstart + a + 1 };
+			led.push_back(ed);
+		}
+		lstart = lpt.size();
+		for (int a = 0; a < ns; a++)
+		{
+			double pt1[3];
+			bzmesh[e].Para2Phys(1., su[a], 1., pt1);
+			array<double, 3> pt = { pt1[0], pt1[1], pt1[2] };
+			lpt.push_back(pt);
+		}
+		for (int a = 0; a < ns - 1; a++)
+		{
+			array<int, 2> ed = { lstart + a, lstart + a + 1 };
+			led.push_back(ed);
+		}
+		lstart = lpt.size();
+		for (int a = 0; a < ns; a++)
+		{
+			double pt1[3];
+			bzmesh[e].Para2Phys(0., 0., su[a], pt1);
+			array<double, 3> pt = { pt1[0], pt1[1], pt1[2] };
+			lpt.push_back(pt);
+		}
+		for (int a = 0; a < ns - 1; a++)
+		{
+			array<int, 2> ed = { lstart + a, lstart + a + 1 };
+			led.push_back(ed);
+		}
+		lstart = lpt.size();
+		for (int a = 0; a < ns; a++)
+		{
+			double pt1[3];
+			bzmesh[e].Para2Phys(1., 0., su[a], pt1);
+			array<double, 3> pt = { pt1[0], pt1[1], pt1[2] };
+			lpt.push_back(pt);
+		}
+		for (int a = 0; a < ns - 1; a++)
+		{
+			array<int, 2> ed = { lstart + a, lstart + a + 1 };
+			led.push_back(ed);
+		}
+		lstart = lpt.size();
+		for (int a = 0; a < ns; a++)
+		{
+			double pt1[3];
+			bzmesh[e].Para2Phys(0., 1., su[a], pt1);
+			array<double, 3> pt = { pt1[0], pt1[1], pt1[2] };
+			lpt.push_back(pt);
+		}
+		for (int a = 0; a < ns - 1; a++)
+		{
+			array<int, 2> ed = { lstart + a, lstart + a + 1 };
+			led.push_back(ed);
+		}
+		lstart = lpt.size();
+		for (int a = 0; a < ns; a++)
+		{
+			double pt1[3];
+			bzmesh[e].Para2Phys(1., 1., su[a], pt1);
+			array<double, 3> pt = { pt1[0], pt1[1], pt1[2] };
+			lpt.push_back(pt);
+		}
+		for (int a = 0; a < ns - 1; a++)
+		{
+			array<int, 2> ed = { lstart + a, lstart + a + 1 };
+			led.push_back(ed);
+		}
+		/*for (int a = 0; a < ns - 1; a++)
+		{
+			array<int, 2> lc;
+			lc[0] = ecount * 4 * (ns - 1) + a;
+			lc[1] = ecount * 4 * (ns - 1) + a + 1;
+			led.push_back(lc);
+			lc[0] = ecount * 4 * (ns - 1) + 3 * ns - 4 + a;
+			lc[1] = ecount * 4 * (ns - 1) + 3 * ns - 4 + a + 1;
+			led.push_back(lc);
+		}
+		for (int a = 0; a < ns - 2; a++)
+		{
+			array<int, 2> lc;
+			lc[0] = ecount * 4 * (ns - 1) + ns + 2 * a;
+			lc[1] = ecount * 4 * (ns - 1) + ns + 2 * a + 2;
+			led.push_back(lc);
+			lc[0] = ecount * 4 * (ns - 1) + ns + 2 * a - 1;
+			lc[1] = ecount * 4 * (ns - 1) + ns + 2 * a + 1;
+			led.push_back(lc);
+		}
+		array<int, 2> lc1;
+		lc1[0] = ecount * 4 * (ns - 1);
+		lc1[1] = ecount * 4 * (ns - 1) + ns;
+		led.push_back(lc1);
+		lc1[0] = ecount * 4 * (ns - 1) + 3 * ns - 5;
+		lc1[1] = ecount * 4 * (ns - 1) + 4 * ns - 5;
+		led.push_back(lc1);
+		ecount++;*/
+	}
+
+	//string fname = fn + "_disp.vtk";
+	//ofstream fout;
+	//fout.open(fname.c_str());
+	//unsigned int i;
+	//if (fout.is_open())
+	//{
+	//	fout << "# vtk DataFile Version 2.0\nSquare plate test\nASCII\nDATASET UNSTRUCTURED_GRID\n";
+	//	fout << "POINTS " << spt.size() << " float\n";
+	//	for (i = 0; i < spt.size(); i++)
+	//	{
+	//		fout << spt[i][0] << " " << spt[i][1] << " " << spt[i][2] << "\n";
+	//	}
+	//	fout << "\nCELLS " << sele.size() << " " << 9 * sele.size() << '\n';
+	//	for (i = 0; i < sele.size(); i++)
+	//	{
+	//		fout << "8 " << sele[i][0] << " " << sele[i][1] << " " << sele[i][2] << " " << sele[i][3]
+	//			<< " " << sele[i][4] << " " << sele[i][5] << " " << sele[i][6] << " " << sele[i][7] << '\n';
+	//	}
+	//	fout << "\nCELL_TYPES " << sele.size() << '\n';
+	//	for (i = 0; i < sele.size(); i++)
+	//	{
+	//		fout << "12\n";
+	//	}
+	//	//fout<<"\nPOINT_DATA "<<sdisp.size()<<"\nVECTORS disp float\n";
+	//	//for(i=0;i<sdisp.size();i++)
+	//	//{
+	//	//	fout << sdisp[i][0] << " " << sdisp[i][1] << " " << sdisp[i][2] << "\n";
+	//	//}
+	//	//fout << "\nPOINT_DATA " << sse.size() << "\nVECTORS strain float\n";
+	//	//for (i = 0; i<sse.size(); i++)
+	//	//{
+	//	//	fout << sse[i][0] << " " << sse[i][1] << " " << sse[i][2] << "\n";
+	//	//}
+	//	//fout<<"POINT_DATA "<<sss.size()<<"\nVECTORS stress float\n";
+	//	//for(i=0;i<sss.size();i++)
+	//	//{
+	//	//	fout<<sss[i][0]<<" "<<sss[i][1]<<" "<<sss[i][2]<<"\n";
+	//	//}
+	//	//fout<<"POINT_DATA "<<sdisp_err.size()<<"\nVECTORS disp_err float\n";
+	//	//for(i=0;i<sdisp_err.size();i++)
+	//	//{
+	//	//	fout<<sdisp_err[i][0]<<" "<<sdisp_err[i][1]<<" 0\n";
+	//	//}
+
+	//	//fout<<"POINT_DATA "<<sdisp.size()<<"\nSCALARS u float 1\nLOOKUP_TABLE default\n";
+	//	//for(uint i=0;i<sdisp.size();i++)
+	//	//{
+	//	//	fout<<sdisp[i]<<"\n";
+	//	//}
+
+	//	//fout<<"\nCELL_DATA "<<errL2.size()<<"\nSCALARS Error float 1\nLOOKUP_TABLE default\n";
+	//	//for(i=0;i<errL2.size();i++)
+	//	//{
+	//	//	fout<<errL2[i]<<"\n";
+	//	//	//fout<<eles[i].type<<"\n";
+	//	//}
+	//	fout.close();
+	//}
+	//else
+	//{
+	//	cout << "Cannot open " << fname << "!\n";
+	//}
+	
+	string fname1(fn + "-lines.k");
+	ofstream fout1;
+
+	int npt = lpt.size();
+	int nele = led.size();
+	int width(16);
+	int width2(8);
+	fout1.open(fname1.c_str());
+	if (fout1.is_open())
+	{
+		fout1 << "*NODE" << endl;
+		fout1 << "$#   nid               x               y               z      tc      rc" << endl;
+
+		for (int i = 0; i < npt; i++)
+		{
+			fout1 << setw(width2) << i + 1 << setw(width) << lpt[i][0] << setw(width) << lpt[i][1] << setw(width) << lpt[i][2] << endl;
+		}
+
+		fout1 << "*ELEMENT_SHELL" << endl;
+		fout1 << "$#   eid     pid      n1      n2      n3      n4" << endl;
+		for (int i = 0; i < nele; i++)
+		{
+			fout1 << setw(width2) << i + 1 << setw(width2) << 1 << setw(width2) << led[i][0] + 1 << setw(width2) << led[i][1] + 1 << setw(width2) << led[i][1] + 1 << setw(width2) << led[i][1] + 1 << endl;
+		}
+		fout1.close();
+		cout << "Write LSDYNA Done!" << endl;
+	}
+	else
+	{
+		cout << "Cannot open " << fname1 << "!\n";
+	}
+
+}
+
 void Laplace::VisualizeVTK(const vector<BezierElement3D>& bzmesh, string fn)
 {
 	vector<array<double, 3>> spt;//s means sample

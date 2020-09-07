@@ -29293,6 +29293,458 @@ void TruncatedTspline_3D::WriteBezierInfo_AllSpline_LSDYNA_LocalRefine(string fn
 	cout << "End of writing!\n";
 }
 
+void TruncatedTspline_3D::WriteBezierInfo_AllSpline_BEXT2(string fn, vector<BezierElement3D>& bzmesh)
+{
+	cout << "Writing file...\n";
+	string fname = fn + ".txt";
+	ofstream fout;
+	fout.open(fname.c_str());
+	if (fout.is_open())
+	{
+		fout << "B E X T 2.0\n";
+
+		fout << "BLOCK 1 - PATCH\n";
+		fout << "0, "; // PID, single patch by construction
+		fout << cp.size() << ", "; // NN
+		fout << bzmesh.size() << ", "; // NE
+
+		auto n_reg = count_if(bzmesh.begin(), bzmesh.end(), [](auto& elem) {return elem.type == 0; });
+		unsigned int NCV(0);
+		for (const auto& elem : bzmesh)
+		{
+			if (elem.type != 0) NCV += elem.IEN.size();
+		}
+		NCV += (n_reg > 0 ? 3 : 0);
+		fout << NCV << ", "; // NCV
+		fout << "0\n"; // WFL, polynomial
+
+		fout << "BLOCK 2 - NODES\n";
+		int width(16);
+		fout << setprecision(15);
+		for (auto& pt : cp)
+		{
+			fout << setw(width) << pt.coor[0] << ", " << setw(width) << pt.coor[1] << ", " << setw(width) << pt.coor[2] << ", " << setw(width) << "1\n";
+		}
+
+		// sort elements according to (1) tensor-product or not, (2) if not, NNj, the size of nodes defining an element (IEN)
+
+		vector<int> irr_id;
+		vector<vector<int>> irr_eid; // block type
+		for (auto i = 0; i < bzmesh.size(); ++i)
+		{
+			const auto& elem = bzmesh[i];
+			if (elem.type != 0)
+			{
+				auto it = find(irr_id.begin(), irr_id.end(), elem.IEN.size());
+				if (it == irr_id.end())
+				{
+					irr_id.push_back(elem.IEN.size());
+					irr_eid.push_back(vector<int>(i));
+				}
+				else
+				{
+					auto loc = it - irr_id.begin();
+					irr_eid[loc].push_back(i);
+				}
+			}
+		}
+		auto NEB = irr_id.size() + (n_reg > 0 ? 1 : 0);
+		const int PRj(3), PSj(3), PTj(3);
+
+		//
+
+
+		// continue writing to file
+		fout << "BLOCK 3 - ELEMENTS\n";
+		fout << NEB << "\n";
+		int nent(0);
+		if (n_reg > 0) // block of regular elements, always the first block
+		{
+			fout << "0, "; // ETYPEj, tensor product
+			fout << n_reg << ", "; // NEj
+			fout << "64, "; // NNj
+			fout << "3, "; // NCVj
+			fout << PRj << ", " << PSj << ", " << PTj << "\n";
+			for (const auto& elem : bzmesh) // Nk
+			{
+				if (elem.type == 0)
+				{
+					nent = 0;
+					for (auto i = 0; i < elem.IEN.size(); ++i)
+					{
+						fout << elem.IEN[i];
+						if (nent % 10 == 9)
+						{
+							fout << "\n";
+							nent = 0;
+						}
+						else
+						{
+							fout << ", ";
+							nent++;
+						}
+					}
+					fout << "\n";
+					fout << "0, 1, 2\n"; // CVIDl, index starts from 0, all knot intervals the same
+				}
+			}
+		}
+		// other blocks of elements, irregular and boundary elements
+		unsigned long int cvid = n_reg > 0 ? 3 : 0;
+		for (auto i = 0; i < irr_id.size(); ++i) // each block
+		{
+			fout << "1, "; // ETYPEj, non-tensor product
+			fout << irr_eid[i].size() << ", "; // NEj
+			fout << irr_id[i] << ", "; // NNj
+			fout << irr_id[i] << ", "; // NCVj, in non-tensor product case, NNj == NCVj
+			fout << PRj << ", " << PSj << ", " << PTj << "\n";
+			for (auto eid : irr_eid[i]) // each element in this block
+			{
+				auto& elem = bzmesh[eid];
+				nent = 0;
+				for (auto i = 0; i < elem.IEN.size(); ++i)
+				{
+					fout << elem.IEN[i];
+					if (nent % 10 == 9)
+					{
+						fout << "\n";
+						nent = 0;
+					}
+					else
+					{
+						fout << ", ";
+						nent++;
+					}
+				}
+				fout << "\n";
+				// CVIDl
+				nent = 0;
+				for (auto i = 0; i < elem.IEN.size(); ++i)
+				{
+					fout << cvid++;
+					if (nent % 10 == 9)
+					{
+						fout << "\n";
+						nent = 0;
+					}
+					else
+					{
+						fout << ", ";
+						nent++;
+					}
+				}
+				fout << "\n";
+			}
+		}
+
+		fout << "BLOCK 4 - COEFFICIENT VECTORS\n"; // including knot interval vectors if there is at least one regular element
+		const int NSCVB(0), NCVs(0), NCVCs(0); // no support for sparse format yet, but can be done almost trivially
+		nent = 0;
+		if (n_reg > 0)
+		{
+			fout << "2, " << NSCVB << "\n"; // two types of coefficient vectors based on the length, knot interval and dense matrix
+
+			fout << "3, "; // NCV1, number of coefficient vectors in the first type of block, i.e., knot interval, three directions
+			fout << "7\n"; // NCVC1, length of this type of coefficient vector
+
+			fout << NCV - 3 << ", "; // NCV2, number of coefficient vectors in the second type of block, i.e., dense matrix
+			fout << "64\n"; // NCVC2, length of this type of coefficient vector
+
+			// now write CVCm, compents of coefficient vectors, their IDs are referred to as CVIDl in the above
+			for (auto id = 0; id < 3; ++id) // three directions, all elements have the same knot intervals
+			{
+				vector<double> kv(7, 1.); // first write the knot , assume all knot vectors are the same
+				for (auto i = 0; i < kv.size(); ++i)
+				{
+					fout << kv[i];
+					if (nent % 5 == 4)
+					{
+						fout << "\n";
+						nent = 0;
+					}
+					else
+					{
+						fout << ", ";
+						nent++;
+					}
+				}
+			}
+		}
+		else
+		{
+			fout << "1, " << NSCVB << "\n"; // only one type of coefficient vectors based on the length, i.e., dense matrix
+			fout << NCV << ", "; // NCV1, number of coefficient vectors in this type of block, i.e., dense matrix
+			fout << "64\n"; // NCVC1, length of this type of coefficient vector
+		}
+
+		// now write CVCm, compents of coefficient vectors, their IDs are referred to as CVIDl in the above
+		for (auto ib = 0; ib < irr_id.size(); ++ib) // each block
+		{
+			for (auto eid : irr_eid[ib]) // each element in this block
+			{
+				auto& elem = bzmesh[eid];
+				for (auto i = 0; i < elem.cmat.size(); ++i)
+				{
+					for (auto j = 0; j < 64; ++j)
+					{
+						fout << elem.cmat[i][j];
+						if (nent % 5 == 4)
+						{
+							fout << "\n";
+							nent = 0;
+						}
+						else
+						{
+							fout << ", ";
+							nent++;
+						}
+					}
+				}
+			}
+		}
+
+		fout.close();
+	}
+	else
+	{
+		cout << "Cannot open " << fname << "!\n";
+	}
+	cout << "End of writing!\n";
+}
+
+void TruncatedTspline_3D::WriteBezierInfo_AllSpline_BEXT2_LocalRefine(string fn, vector<BezierElement3D>& bzmesh)
+{
+	int count(0);
+	vector<int> pid;
+	for (uint i = 0; i < hcp.size(); i++)
+	{
+		for (uint j = 0; j < hcp[i].size(); j++)
+		{
+			if (hcp[i][j].act == 1)
+			{
+				pid.push_back(count);
+			}
+		}
+	}
+
+	
+	cout << "Writing file...\n";
+	string fname = fn + ".txt";
+	ofstream fout;
+	fout.open(fname.c_str());
+	if (fout.is_open())
+	{
+		fout << "B E X T 2.0\n";
+
+		fout << "BLOCK 1 - PATCH\n";
+		fout << "0, "; // PID, single patch by construction
+		fout << pid.size() << ", "; // NN
+		fout << bzmesh.size() << ", "; // NE
+
+		auto n_reg = count_if(bzmesh.begin(), bzmesh.end(), [](auto& elem) {return elem.type == 0; });
+		unsigned int NCV(0);
+		for (const auto& elem : bzmesh)
+		{
+			if (elem.type != 0) NCV += elem.IEN.size();
+		}
+		NCV += (n_reg > 0 ? 3 : 0);
+		fout << NCV << ", "; // NCV
+		fout << "0\n"; // WFL, polynomial
+
+		fout << "BLOCK 2 - NODES\n";
+		int width(16);
+		fout << setprecision(15);
+		for (uint i = 0; i < hcp.size(); i++)
+			for (uint j = 0; j < hcp[i].size(); j++)
+				if (hcp[i][j].act == 1)
+					//fout << "gnode " << i << setw(width) << hcp[i][j].coor[0] << " " << setw(width) << hcp[i][j].coor[1] << " " << setw(width) << hcp[i][j].coor[2] << setw(width) << " 1\n";
+					fout << setw(width) << hcp[i][j].coor[0] << " " << setw(width) << hcp[i][j].coor[1] << " " << setw(width) << hcp[i][j].coor[2] << setw(width) << " 1\n";
+
+		// sort elements according to (1) tensor-product or not, (2) if not, NNj, the size of nodes defining an element (IEN)
+
+		vector<int> irr_id;
+		vector<vector<int>> irr_eid; // block type
+		for (auto i = 0; i < bzmesh.size(); ++i)
+		{
+			const auto& elem = bzmesh[i];
+			if (elem.type != 0)
+			{
+				auto it = find(irr_id.begin(), irr_id.end(), elem.IEN.size());
+				if (it == irr_id.end())
+				{
+					irr_id.push_back(elem.IEN.size());
+					irr_eid.push_back(vector<int>(i));
+				}
+				else
+				{
+					auto loc = it - irr_id.begin();
+					irr_eid[loc].push_back(i);
+				}
+			}
+		}
+		auto NEB = irr_id.size() + (n_reg > 0 ? 1 : 0);
+		const int PRj(3), PSj(3), PTj(3);
+
+		//
+
+
+		// continue writing to file
+		fout << "BLOCK 3 - ELEMENTS\n";
+		fout << NEB << "\n";
+		int nent(0);
+		if (n_reg > 0) // block of regular elements, always the first block
+		{
+			fout << "0, "; // ETYPEj, tensor product
+			fout << n_reg << ", "; // NEj
+			fout << "64, "; // NNj
+			fout << "3, "; // NCVj
+			fout << PRj << ", " << PSj << ", " << PTj << "\n";
+			for (const auto& elem : bzmesh) // Nk
+			{
+				if (elem.type == 0)
+				{
+					nent = 0;
+					for (auto i = 0; i < elem.IEN.size(); ++i)
+					{
+						fout << elem.IEN[i];
+						if (nent % 10 == 9)
+						{
+							fout << "\n";
+							nent = 0;
+						}
+						else
+						{
+							fout << ", ";
+							nent++;
+						}
+					}
+					fout << "\n";
+					fout << "0, 1, 2\n"; // CVIDl, index starts from 0, all knot intervals the same
+				}
+			}
+		}
+		// other blocks of elements, irregular and boundary elements
+		unsigned long int cvid = n_reg > 0 ? 3 : 0;
+		for (auto i = 0; i < irr_id.size(); ++i) // each block
+		{
+			fout << "1, "; // ETYPEj, non-tensor product
+			fout << irr_eid[i].size() << ", "; // NEj
+			fout << irr_id[i] << ", "; // NNj
+			fout << irr_id[i] << ", "; // NCVj, in non-tensor product case, NNj == NCVj
+			fout << PRj << ", " << PSj << ", " << PTj << "\n";
+			for (auto eid : irr_eid[i]) // each element in this block
+			{
+				auto& elem = bzmesh[eid];
+				nent = 0;
+				for (auto i = 0; i < elem.IEN.size(); ++i)
+				{
+					fout << elem.IEN[i];
+					if (nent % 10 == 9)
+					{
+						fout << "\n";
+						nent = 0;
+					}
+					else
+					{
+						fout << ", ";
+						nent++;
+					}
+				}
+				fout << "\n";
+				// CVIDl
+				nent = 0;
+				for (auto i = 0; i < elem.IEN.size(); ++i)
+				{
+					fout << cvid++;
+					if (nent % 10 == 9)
+					{
+						fout << "\n";
+						nent = 0;
+					}
+					else
+					{
+						fout << ", ";
+						nent++;
+					}
+				}
+				fout << "\n";
+			}
+		}
+
+		fout << "BLOCK 4 - COEFFICIENT VECTORS\n"; // including knot interval vectors if there is at least one regular element
+		const int NSCVB(0), NCVs(0), NCVCs(0); // no support for sparse format yet, but can be done almost trivially
+		nent = 0;
+		if (n_reg > 0)
+		{
+			fout << "2, " << NSCVB << "\n"; // two types of coefficient vectors based on the length, knot interval and dense matrix
+
+			fout << "3, "; // NCV1, number of coefficient vectors in the first type of block, i.e., knot interval, three directions
+			fout << "7\n"; // NCVC1, length of this type of coefficient vector
+
+			fout << NCV - 3 << ", "; // NCV2, number of coefficient vectors in the second type of block, i.e., dense matrix
+			fout << "64\n"; // NCVC2, length of this type of coefficient vector
+
+			// now write CVCm, compents of coefficient vectors, their IDs are referred to as CVIDl in the above
+			for (auto id = 0; id < 3; ++id) // three directions, all elements have the same knot intervals
+			{
+				vector<double> kv(7, 1.); // first write the knot , assume all knot vectors are the same
+				for (auto i = 0; i < kv.size(); ++i)
+				{
+					fout << kv[i];
+					if (nent % 5 == 4)
+					{
+						fout << "\n";
+						nent = 0;
+					}
+					else
+					{
+						fout << ", ";
+						nent++;
+					}
+				}
+			}
+		}
+		else
+		{
+			fout << "1, " << NSCVB << "\n"; // only one type of coefficient vectors based on the length, i.e., dense matrix
+			fout << NCV << ", "; // NCV1, number of coefficient vectors in this type of block, i.e., dense matrix
+			fout << "64\n"; // NCVC1, length of this type of coefficient vector
+		}
+
+		// now write CVCm, compents of coefficient vectors, their IDs are referred to as CVIDl in the above
+		for (auto ib = 0; ib < irr_id.size(); ++ib) // each block
+		{
+			for (auto eid : irr_eid[ib]) // each element in this block
+			{
+				auto& elem = bzmesh[eid];
+				for (auto i = 0; i < elem.cmat.size(); ++i)
+				{
+					for (auto j = 0; j < 64; ++j)
+					{
+						fout << elem.cmat[i][j];
+						if (nent % 5 == 4)
+						{
+							fout << "\n";
+							nent = 0;
+						}
+						else
+						{
+							fout << ", ";
+							nent++;
+						}
+					}
+				}
+			}
+		}
+
+		fout.close();
+	}
+	else
+	{
+		cout << "Cannot open " << fname << "!\n";
+	}
+	cout << "End of writing!\n";
+}
 
 void TruncatedTspline_3D::WriteBezier(const vector<BezierElement3D>& bzmesh, string fn)
 {
@@ -31677,9 +32129,9 @@ int TruncatedTspline_3D::SmoothingPoint_Angran(int pid, double stepSize)
 	}
 	if ((minJacob_0 < 0. && minJacob_1 < minJacob_0) || (nBad1 > nBad0))
 	{
-		cp[pid].coor[0] = pold[0];
-		cp[pid].coor[1] = pold[1];
-		cp[pid].coor[2] = pold[2];
+		cp_smooth[pid].coor[0] = pold[0];
+		cp_smooth[pid].coor[1] = pold[1];
+		cp_smooth[pid].coor[2] = pold[2];
 		return 0;
 	}
 	return 1;
@@ -31966,15 +32418,7 @@ void TruncatedTspline_3D::Smoothing_Angran(int nSize, double stepSize)
 
 		//cout << "Initialize cp_smooth" << endl;
 		
-		for (uint i = 0; i < cp.size(); i++)
-		{
-			if (cp[i].type != 1)//interior points
-			{
-				int tmp = SmoothingPoint_Angran(i, stepSize);
-				if (tmp == 1) flag = 1;
-			}
-		}
-		cp = cp_smooth;
+
 
 		for (uint i = 0; i < cp.size(); i++)
 		{
@@ -31991,7 +32435,19 @@ void TruncatedTspline_3D::Smoothing_Angran(int nSize, double stepSize)
 			}
 		}
 
+		//cp = cp_smooth;
+
+		for (uint i = 0; i < cp.size(); i++)
+		{
+			if (cp[i].type != 1)//interior points
+			{
+				//int tmp = SmoothingPoint_Angran(i, stepSize);
+				int tmp = SmoothingPoint(i, stepSize);
+				if (tmp == 1) flag = 1;
+			}
+		}
 		cp = cp_smooth;
+
 		double minJacob_glb;
 		int min_pos;
 		vector<int> BadEle;
