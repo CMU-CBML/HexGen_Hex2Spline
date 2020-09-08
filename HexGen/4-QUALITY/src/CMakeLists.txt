@@ -61,6 +61,7 @@ source_group_by_dir(all_files)
 # Application specific preprocessor definitions
 ##############################################################################
 IF(MSVC)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
 add_definitions(-wd4018 -wd4267 -wd4101 -wd4190 -wd4244 -wd4305 -wd4099) # Turn off warnings
 ENDIF(MSVC)
 
