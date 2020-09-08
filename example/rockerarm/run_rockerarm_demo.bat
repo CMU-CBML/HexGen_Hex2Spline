@@ -21,7 +21,7 @@ ParametricMapping.exe -i rockerarm_initial_read.k -p rockerarm_polycube_structur
 @echo -------------------------------------------------------------------
 @pause
 @echo Fix interior points 
-Quality.exe -I rockerarm_hex_initial.vtk   -m 0 -n 1 
+Quality.exe -I rockerarm_hex_initial.vtk   -m 0 -n 10 
 @echo Done!
 @echo -------------------------------------------------------------------
 @pause
@@ -34,13 +34,13 @@ Quality.exe -I rockerarm_hex_initial_lap.vtk   --method 1 --number 1
 @pause
 
 @echo Smooth  points
-Quality.exe -I rockerarm_hex_initial_lap_pillow.vtk --method 2 --parameter 0.001 --number 1 --sharp 2 
+Quality.exe -I rockerarm_hex_initial_lap_pillow.vtk --method 2 --parameter 0.1 --number 200 
 @echo Done!
 @echo -------------------------------------------------------------------
 @pause
 
-@echo Optimize element with minimum Jacobian
-Quality.exe -I rockerarm_hex_initial_lap_pillow_smooth.vtk   --method 3 --parameter 0.001 --number 15
+@echo Optimize element with minimum Jacobian Method 2 and 3 ran more than 1 time
+Quality.exe -I rockerarm_hex_initial_lap_pillow_smooth.vtk   --method 3 --parameter 0.01 --number 50
 @echo Done!
 @echo -------------------------------------------------------------------
 @pause

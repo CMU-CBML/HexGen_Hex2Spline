@@ -34,13 +34,13 @@ Quality.exe -I ant_hex_initial_lap.vtk   --method 1 --number 1
 @pause
 
 @echo Smooth  points
-Quality.exe -I ant_hex_initial_lap_pillow.vtk --method 2 --parameter 0.001 --number 1 --sharp 2 
+Quality.exe -I ant_hex_initial_lap_pillow.vtk --method 2 --parameter 0.01 --number 60
 @echo Done!
 @echo -------------------------------------------------------------------
 @pause
 
 @echo Optimize element with minimum Jacobian
-Quality.exe -I ant_hex_initial_lap_pillow_smooth.vtk   --method 3 --parameter 0.001 --number 15
+Quality.exe -I ant_hex_initial_lap_pillow_smooth.vtk   --method 3 --parameter 0.01 --number 15
 @echo Done!
 @echo -------------------------------------------------------------------
 @pause
