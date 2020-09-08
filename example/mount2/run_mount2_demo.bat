@@ -34,7 +34,7 @@ Quality.exe -I mount2_hex_initial_lap.vtk   --method 1 --number 1
 @pause
 
 @echo Smooth  points
-Quality.exe -I mount2_hex_initial_lap_pillow.vtk --method 2 --parameter 0.001 --number 1 --sharp 2 
+Quality.exe -I mount2_hex_initial_lap_pillow.vtk --method 2 --parameter 0.1 --number 200 
 @echo Done!
 @echo -------------------------------------------------------------------
 @pause
