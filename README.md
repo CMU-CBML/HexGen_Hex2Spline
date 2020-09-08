@@ -32,7 +32,7 @@ Model design and testing: Jialei Ginny Liu, Jeffrey He.
 
 - Zhang, Y.: **Geometric Modeling and Mesh Generation from Scanned Images.** Chapman and Hall/CRC (2016)
 
-- Lai, Y., Zhang, Y.J., Liu, L., Wei, X., Fang, E., Lua, J.: Integrating CAD with Abaqus: A practical isogeometric analysis software platform for industrial applications. _Computers and Mathematics with Applications_ 74(7), 1648–1660 (2017)
+- Lai, Y., Zhang, Y.J., Liu, L., Wei, X., Fang, E., Lua, J.: **Integrating CAD with Abaqus: A practical isogeometric analysis software platform for industrial applications.** _Computers and Mathematics with Applications_ 74(7), 1648–1660 (2017)
 
 - Wei, X., Zhang, Y., Hughes, T.J.R.: **Truncated hierarchical tricubic C0 spline construction on unstructured hexahedral meshes for isogeometric analysis applications.** _Computers and Mathematics with Applications_ 74(9), 2203–2220 (2017)
 
