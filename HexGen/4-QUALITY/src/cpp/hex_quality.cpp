@@ -740,7 +740,7 @@ void HexQuality::run_MeshQualityImprove(int mode, int flag_sharp, double tol_sha
 	string fn_out;
 
 	std::filesystem::path path_in = fn;
-	fld = path_in.replace_extension().string();
+	fld = path_in.parent_path().string();
 
 	size_t lastindex = fn.find_last_of(".");
 	fn_out = fn.substr(0, lastindex);
