@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.8)
-project (ParametricMappingProject)
+project (QualityProject)
 
 # add our path and macros to cmake module path
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
@@ -66,11 +66,11 @@ ENDIF(MSVC)
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 #INCLUDE_DIRECTORIES(Entrance Constructor MeshStructure SparseSolver ANN CoMISo NURBS Analysis ConstructInclude Wap MeshIO)
-ADD_EXECUTABLE(ParametricMapping ${all_files})
+ADD_EXECUTABLE(Quality ${all_files})
 #target_link_libraries(TTSP_3D ${SuiteSparse_LIBS} ${GoTools_LIBS} ${Boost_LIBRARIES} ${Matlab_LIBS} ) 
 #target_link_libraries(conv3D ${Matlab_LIBS} ) 
 IF(MSVC)
-SET_TARGET_PROPERTIES(ParametricMapping PROPERTIES COMPILE_FLAGS "/MP")
+SET_TARGET_PROPERTIES(Quality PROPERTIES COMPILE_FLAGS "/MP")
 ELSE(MSVC)
 add_definitions(-boost_system -boost_filesystem)
 ENDIF(MSVC)

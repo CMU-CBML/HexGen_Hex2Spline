@@ -36,7 +36,7 @@ void Commandline(int argc, char** argv)
 			("t,stol", "Tolerance for automatically detecting sharp feature", cxxopts::value<double>(tol_sharp))
 			("I,input", "Input file", cxxopts::value<std::string>(fn_in))
 #ifdef CXXOPTS_USE_UNICODE
-			("unicode", u8"A help option with non-ascii: ¨¤. Here the size of the"
+			("unicode", u8"A help option with non-ascii: ï¿½ï¿½. Here the size of the"
 				" string should be correct")
 #endif
 			;
@@ -46,7 +46,7 @@ void Commandline(int argc, char** argv)
 				("n,number", "Pillowing layer number, Smoothing and Optimization number of steps", cxxopts::value<int>(quality_par1))
 			("p,parameter", "Smoothing / Optimization step size", cxxopts::value<double>(quality_par2))
 #ifdef CXXOPTS_USE_UNICODE
-			("unicode", u8"A help option with non-ascii: ¨¤. Here the size of the"
+			("unicode", u8"A help option with non-ascii: ï¿½ï¿½. Here the size of the"
 				" string should be correct")
 #endif
 			;
