@@ -1,6 +1,5 @@
 build/
 backup/
-*.exe
 *.7z
 lspost.*
 desktop.ini
