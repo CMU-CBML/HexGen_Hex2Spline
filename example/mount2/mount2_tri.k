@@ -1,5 +1,5 @@
-$# LS-DYNA Keyword file created by LS-PrePost(R) V4.6.15 - 16Aug2019
-$# Created on Sep-07-2020 (21:11:12)
+$# LS-DYNA Keyword file
+$#
 *KEYWORD
 *ELEMENT_SHELL
        1       1       4       1     181     181       0       0       0       0
