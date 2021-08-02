@@ -150,7 +150,7 @@ bool PhysicalPolycube::ReadKHex(const char * filename)
 			}
 			vertexNumber_hex++;
 		}
-		cout << "Triangle inforamtion: vertex number " << vertexNumber_hex << " element number " << elementNumber_hex << endl;
+		cout << "Triangle information: vertex number " << vertexNumber_hex << " element number " << elementNumber_hex << endl;
 		if (!polycube_structure_hex_.CreateNewMesh(polycube_structure_hex_.HEXAHEDRON, vertexNumber_hex, elementNumber_hex)) {
 			return false;
 		}
@@ -339,7 +339,7 @@ bool PhysicalPolycube::ReadKTri(const char * filename)
 			}
 			vertexNumber++;
 		}
-		cout << "Triangle inforamtion: vertex number " << vertexNumber << " element number " << elementNumber << endl;
+		cout << "Triangle information: vertex number " << vertexNumber << " element number " << elementNumber << endl;
 		if (!CreateNewMesh(TRIANGLE, vertexNumber, elementNumber)) {
 			return false;
 		}
