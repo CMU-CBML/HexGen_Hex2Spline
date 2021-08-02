@@ -93,7 +93,7 @@ bool CVTBasedPolycube::ReadKTri(const char * filename)
 			}
 			vertexNumber++;
 		}
-		cout << "Triangle inforamtion: vertex number " << vertexNumber << " element number " << elementNumber << endl;
+		cout << "Triangle information: vertex number " << vertexNumber << " element number " << elementNumber << endl;
 		if (!CreateNewMesh(TRIANGLE, vertexNumber, elementNumber)) {
 			return false;
 		}
