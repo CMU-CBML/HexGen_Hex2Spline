@@ -5,7 +5,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
-
+#include <chrono>
 #include "physical_polycube.h"
 #include "Main.h"
 #include "cxxopts.hpp"
@@ -132,8 +132,43 @@ int main(int argc, char* argv[])
 	{
 		cout << "run here main" << endl;
 	}
+	cout << a_physical_polycube_class.polycube_structure_hex_.elementNumber << endl;
+	cout << "run here main" << endl;
+	if (a_physical_polycube_class.polycube_structure_hex_.elementNumber>1)
+	{
+		auto start = std::chrono::high_resolution_clock::now();
 
-	a_physical_polycube_class.MappingRealPara(fn_out);
+		a_physical_polycube_class.MappingRealPara(fn_out);
+
+
+		auto end = std::chrono::high_resolution_clock::now();
+
+		std::chrono::duration<double> duration = end - start;
+
+
+		std::cout << "ParametricMapping2024 Running Time: " << duration.count() << " second" << std::endl;
+	}
+
+	if (a_physical_polycube_class.polycube_structure_hex_.elementNumber ==1)
+	{
+
+		auto start = std::chrono::high_resolution_clock::now();
+
+		a_physical_polycube_class.MappingRealPara0(fn_out);
+
+
+		auto end = std::chrono::high_resolution_clock::now();
+
+		std::chrono::duration<double> duration = end - start;
+
+
+		std::cout << "ParametricMapping2024 Running Time: " << duration.count() << " second" << std::endl;
+	}
+	if (a_physical_polycube_class.polycube_structure_hex_.elementNumber < 1)
+	{
+		cout << "error cube number" << endl;
+	}
+
 
 
 	

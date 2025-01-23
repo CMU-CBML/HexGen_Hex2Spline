@@ -6490,6 +6490,1108 @@ bool PhysicalPolycube::HexMeshOctree()
 
 }
 
+bool PhysicalPolycube::MappingRealPara0(string hexfilename)
+{
+	parametricHex.SetBoundaryVertexSign(1);
+
+	parametricHex.InitiateEdgeValence();
+	//////////////////////////////////////////////////////////////////////
+
+	parametricHex.InitiateElementValence();
+
+
+
+
+	realDomainHex = parametricHex;
+
+	realDomainHex.SetBoundaryVertexSign(1);
+	realDomainHex.InitiateEdgeValence();
+	realDomainHex.InitiateElementValence();
+
+	propElement.resize(parametricHex.vertexNumber);
+
+
+	int para_coord_sys[8][3] =
+	{
+		{ 0	,0,	0  },
+		{8	,0,	0  },
+		{8	,8,	0  },
+		{0	,8,	0  },
+		{0	,0,	8  },
+		{8	,0,	8  },
+		{8	,8,	8  },
+		{0	,8,	8  },
+	};
+
+	int para_index[6][4] =
+	{
+		{ 0	,3,2,1 },
+		{ 0	,1,5,4 },
+		{ 1,2,6,5 },
+		{ 2	,3,7,6 },
+		{ 3,0,4,7 },
+		{ 4,5,6,7 },
+	};
+
+	int  EDGENODES[12][2] = { { 0, 1 },{ 1, 2 },{ 2, 3 },{ 0, 3 },{ 4, 5 },{ 5, 6 },{ 6, 7 },{ 4, 7 },{ 0, 4 },{ 1, 5 },{ 2, 6 },{ 3, 7 } };
+	int i;
+
+	vector<vector<double> > real_hex_total_coordinate;
+	vector<vector<int> > real_hex_total_connection;
+	vector<vector<int> > smooth_index;
+
+	real_hex_coordinate.clear();
+	vector<vector<vector<int >>> real_hex_connection;
+
+	for (i = 0; i < polycube_structure_hex_.elementNumber; ++i)
+	{
+
+		//cout << "loop: " << i << endl;
+		polycubePara = NULL;
+
+		surface_mesh_tri_.CopyMesh(polycubePara);
+
+		vector<int> patch_list_mapping;
+
+		//initial realDomainHex = parametricHex;
+		for (int loopi = 0; loopi < realDomainHex.vertexNumber; loopi++)
+		{
+			for (int loopj = 0; loopj < 3; loopj++)
+			{
+				realDomainHex.vertex[loopi][loopj] = parametricHex.vertex[loopi][loopj];
+			}
+		}
+		realDomainHex = parametricHex;
+
+		//first assign corner
+		unit_cube_index = { -1,-1, -1,-1, -1,-1, -1,-1 };
+		//unit_cube_index(8, -1);
+		for (int loopi = 0; loopi < 6; loopi++)
+		{
+			//find element matching information.
+			vector<vector<int> > corner_coordinate(4);
+
+			for (int loopj = 0; loopj < 4; loopj++)
+			{
+				int para_coord_sys_index = para_index[loopi][loopj];
+
+
+				int temp_index_polycube = polycube_element_[i].face_id[loopi][loopj];//polycube coordinate hex
+				for (int loop_unitcube = 0; loop_unitcube < parametricHex.vertexNumber; loop_unitcube++)
+				{
+					double sum_unit_search = 0;
+					for (int loopk = 0; loopk < 3; loopk++)
+					{
+						sum_unit_search = sum_unit_search + pow(parametricHex.vertex[loop_unitcube][loopk] - para_coord_sys[para_index[loopi][loopj]][loopk], 2);
+					}
+					sum_unit_search = sqrt(sum_unit_search);
+					if (sum_unit_search < EPSILON)
+					{
+						unit_cube_index[para_coord_sys_index] = loop_unitcube;
+						break;
+
+					}
+				}
+
+				for (int loopk = 0; loopk < 3; loopk++)
+				{
+					realDomainHex.vertex[unit_cube_index[para_coord_sys_index]][loopk] = polycube_structure_hex_.vertex[temp_index_polycube][loopk];
+				}
+
+			}
+		}
+
+
+
+
+		//unit_cube_index cornerpoint;
+		/*for (int i_internal_temp = 0; i_internal_temp < 6; ++i_internal_temp)
+		{
+			for (int j_internal_temp = 0; j_internal_temp < 4; ++j_internal_temp)
+			{
+				std::cout << unit_cube_index[para_index[i_internal_temp][j_internal_temp]] << ", ";
+			}
+			std::cout << endl << endl;
+		}*/
+
+
+		//getchar();
+		//create edge;
+		int unit_edge[12][2];
+		for (int loopi = 0; loopi < 12; loopi++)
+		{
+			for (int loopj = 0; loopj < 2; loopj++)
+			{
+				unit_edge[loopi][loopj] = unit_cube_index[EDGENODES[loopi][loopj]];
+				//cout << unit_edge[loopi][loopj] << ", " ;
+			}
+			//cout <<  endl;
+		}
+
+		vector<vector <int>> interior_point_on_edge;
+		//linear interpolation on edge.
+		for (int loopj = 0; loopj < 12; loopj++)
+		{
+			vector <int> temp_interior_point_on_edge;
+			for (int loopi = 0; loopi < parametricHex.vertexNumber; loopi++)
+			{
+
+				if ((parametricHex.vertexSign[loopi] == 1) && (!std::count(unit_cube_index.begin(), unit_cube_index.end(), loopi)))//cout means whether appear
+				{
+
+
+
+					Vector3f V0(parametricHex.vertex[loopi][0] - parametricHex.vertex[unit_edge[loopj][0]][0],
+						parametricHex.vertex[loopi][1] - parametricHex.vertex[unit_edge[loopj][0]][1],
+						parametricHex.vertex[loopi][2] - parametricHex.vertex[unit_edge[loopj][0]][2]);
+
+					Vector3f V1(parametricHex.vertex[unit_edge[loopj][1]][0] - parametricHex.vertex[unit_edge[loopj][0]][0],
+						parametricHex.vertex[unit_edge[loopj][1]][1] - parametricHex.vertex[unit_edge[loopj][0]][1],
+						parametricHex.vertex[unit_edge[loopj][1]][2] - parametricHex.vertex[unit_edge[loopj][0]][2]);
+
+
+
+					/*double x_segment = (parametricHex.vertex[loopi][0] - parametricHex.vertex[unit_edge[loopj][0]][0])
+						/(parametricHex.vertex[unit_edge[loopj][1]][0] - parametricHex.vertex[unit_edge[loopj][0]][0]);
+					double y_segment = (parametricHex.vertex[loopi][1] - parametricHex.vertex[unit_edge[loopj][0]][1])
+						/(parametricHex.vertex[unit_edge[loopj][1]][1] - parametricHex.vertex[unit_edge[loopj][0]][1]);
+					double z_segment = (parametricHex.vertex[loopi][2] - parametricHex.vertex[unit_edge[loopj][0]][2])
+						/(parametricHex.vertex[unit_edge[loopj][1]][2] - parametricHex.vertex[unit_edge[loopj][0]][2]);
+					cout << x_segment;*/
+					if (abs(V0.cross(V1).norm()) < EPSILON)
+					{
+						double ratio_para_phys;
+						double para_length;
+						double x_segment = (parametricHex.vertex[unit_edge[loopj][1]][0] - parametricHex.vertex[unit_edge[loopj][0]][0]);
+						double y_segment = (parametricHex.vertex[unit_edge[loopj][1]][1] - parametricHex.vertex[unit_edge[loopj][0]][1]);
+						double z_segment = (parametricHex.vertex[unit_edge[loopj][1]][2] - parametricHex.vertex[unit_edge[loopj][0]][2]);
+						if (abs(x_segment) > EPSILON)
+						{
+							para_length = x_segment;
+							ratio_para_phys = (parametricHex.vertex[loopi][0] - parametricHex.vertex[unit_edge[loopj][0]][0])
+								/ para_length;
+						}
+						else if (abs(y_segment) > EPSILON)
+						{
+							para_length = y_segment;
+							ratio_para_phys = (parametricHex.vertex[loopi][1] - parametricHex.vertex[unit_edge[loopj][0]][1])
+								/ para_length;
+						}
+						else if (abs(z_segment) > EPSILON)
+						{
+							para_length = z_segment;
+							ratio_para_phys = (parametricHex.vertex[loopi][2] - parametricHex.vertex[unit_edge[loopj][0]][2])
+								/ para_length;
+						}
+						else
+						{
+							cout << "two points too close" << endl;
+						}
+
+
+						double x_segment_physical = (realDomainHex.vertex[unit_edge[loopj][1]][0] - realDomainHex.vertex[unit_edge[loopj][0]][0]);
+						double y_segment_physical = (realDomainHex.vertex[unit_edge[loopj][1]][1] - realDomainHex.vertex[unit_edge[loopj][0]][1]);
+						double z_segment_physical = (realDomainHex.vertex[unit_edge[loopj][1]][2] - realDomainHex.vertex[unit_edge[loopj][0]][2]);
+
+
+						realDomainHex.vertex[loopi][0] = realDomainHex.vertex[unit_edge[loopj][0]][0] + ratio_para_phys * x_segment_physical;
+						realDomainHex.vertex[loopi][1] = realDomainHex.vertex[unit_edge[loopj][0]][1] + ratio_para_phys * y_segment_physical;
+						realDomainHex.vertex[loopi][2] = realDomainHex.vertex[unit_edge[loopj][0]][2] + ratio_para_phys * z_segment_physical;
+
+						temp_interior_point_on_edge.push_back(loopi);
+						//cout << loopi << ", ";
+					}
+				}
+
+
+			}
+			//cout << endl;
+			interior_point_on_edge.push_back(temp_interior_point_on_edge);
+		}
+
+
+		//for (int loopi_edge = 0; loopi_edge < interior_point_on_edge.size(); loopi_edge++)
+		//{
+		//	for (int loopj_edge = 0; loopj_edge < interior_point_on_edge[loopi_edge].size(); loopj_edge++)
+		//	{
+		//		cout << interior_point_on_edge[loopi_edge][loopj_edge] << ", ";
+		//	}
+		//	cout << endl << endl;
+		//}
+
+		////getchar();
+
+
+		/*for (int loopi = 0; loopi < unit_cube_corner_index.size()-1; loopi++)
+		{
+			for (int loopj = loopi+1; loopj < unit_cube_corner_index.size(); loopj++)
+			{
+				int index_unit_1 = unit_cube_corner_index[loopi];
+				int index_unit_2 = unit_cube_corner_index[loopj];
+
+			}
+		}*/
+
+		//Next step interpolate on the edge. 
+
+		/*if (i==4)
+		{
+
+
+		string test_name = inputName + "physical_test.vtk";
+
+		realDomainHex.Write(test_name.c_str());
+		}*/
+
+		//
+		//Project for boundary surface
+		//find correspoinding face index;
+		for (int loopi = 0; loopi < 6; loopi++)
+		{
+			if (-1 != polycube_element_[i].patch_sign[loopi])
+			{
+				//find element matching information.
+				vector<vector<int> > corner_coordinate(4);
+				for (int loopj = 0; loopj < 4; loopj++)
+				{
+					int temp_index_polycube = polycube_element_[i].face_id[loopi][loopj];
+
+					for (int loopk = 0; loopk < 4; loopk++)
+					{
+						int temp_index_physical = polycubePatch[polycube_element_[i].patch_sign[loopi]].cornerPoint[loopk];
+						double sum_lsq = 0;
+						for (int loop_coordinate = 0; loop_coordinate < 3; loop_coordinate++)
+						{
+							sum_lsq = sum_lsq + pow(polycube_structure_hex_.vertex[temp_index_polycube][loop_coordinate]
+								- vertex[temp_index_physical][loop_coordinate], 2);
+						}
+						sum_lsq = sqrt(sum_lsq);
+						if (sum_lsq < EPSILON)
+						{
+							corner_coordinate[loopj].push_back(temp_index_physical);
+
+							break;
+
+						}
+					}
+					for (int loopk = 0; loopk < 3; loopk++)
+					{
+						corner_coordinate[loopj].push_back(para_coord_sys[para_index[loopi][loopj]][loopk]);
+					}
+				}
+
+				//cout << sum_lsq << endl;
+				//cout << corner_coordinate << endl;
+				ParametricMapping(polycube_element_[i].patch_sign[loopi], corner_coordinate);
+
+
+				patch_list_mapping.push_back(polycube_element_[i].patch_sign[loopi]);
+
+
+				//HexMeshProjectionInterior();
+
+				parametricHex.SetBoundaryVertexSign(0);
+
+				for (int loopj = 0; loopj < parametricHex.vertexNumber; ++loopj)
+				{
+					if (equation_plane(corner_coordinate, parametricHex.vertex[loopj]) == 1)
+					{
+						parametricHex.vertexSign[loopj] = 2;
+					}
+
+				}
+
+				HexMeshProjectionBoundary(polycube_element_[i].patch_sign[loopi]);
+
+				//ToDo create hex
+
+
+			}
+			else
+			{
+				/*struct PropagationElement
+				{
+					int px;
+					int nx;
+					int py;
+					int ny;
+					int pz;
+					int nz;
+				};*/
+
+			}
+			//polycubePara->Write("mapping_tri.vtk");
+
+		}
+
+
+		/*if (i==4)
+		{
+			string test_name = inputName + "_2_test.vtk";
+
+			realDomainHex.Write(test_name.c_str());
+			getchar();
+		}*/
+
+
+		string tempName;
+		//linear interpolation interiro surface
+		//first separate inner surface with boundary
+		//following must repeat other wise will wrong.
+		parametricHex.SetBoundaryVertexSign(1);
+		realDomainHex.SetBoundaryVertexSign(1);
+
+
+
+
+
+		for (int loopi = 0; loopi < 6; loopi++)
+		{
+			if (-1 != polycube_element_[i].patch_sign[loopi])
+			{
+				//find element matching information.
+				vector<vector<int> > corner_coordinate(4);
+				for (int loopj = 0; loopj < 4; loopj++)
+				{
+					int temp_index_polycube = polycube_element_[i].face_id[loopi][loopj];
+
+					for (int loopk = 0; loopk < 4; loopk++)
+					{
+						int temp_index_physical = polycubePatch[polycube_element_[i].patch_sign[loopi]].cornerPoint[loopk];
+						double sum_lsq = 0;
+						for (int loop_coordinate = 0; loop_coordinate < 3; loop_coordinate++)
+						{
+							sum_lsq = sum_lsq + pow(polycube_structure_hex_.vertex[temp_index_polycube][loop_coordinate]
+								- vertex[temp_index_physical][loop_coordinate], 2);
+						}
+						sum_lsq = sqrt(sum_lsq);
+						if (sum_lsq < EPSILON)
+						{
+							corner_coordinate[loopj].push_back(temp_index_physical);
+
+							break;
+
+						}
+					}
+					for (int loopk = 0; loopk < 3; loopk++)
+					{
+						corner_coordinate[loopj].push_back(para_coord_sys[para_index[loopi][loopj]][loopk]);
+					}
+				}
+
+
+				for (int loopj = 0; loopj < parametricHex.vertexNumber; ++loopj)
+				{
+					if (equation_plane(corner_coordinate, parametricHex.vertex[loopj]) == 1)
+					{
+						parametricHex.vertexSign[loopj] = 2;
+						realDomainHex.vertexSign[loopj] = 2;
+						//cout << loopj << ", ";
+					}
+
+				}
+
+				//cout <<endl<< endl;
+
+			}
+		}
+		//now corner becomes 1, boundary surface not corner is 2.
+
+
+
+		//getchar();
+		/*if (i == 4)
+		{
+			for (int loopi = 0; loopi < parametricHex.vertexNumber; loopi++)
+			{
+
+				if (parametricHex.vertexSign[loopi] == 0)
+				{
+
+					cout << loopi << ", ";
+				}
+
+
+			}
+			getchar();
+
+			for (int loopi = 0; loopi < parametricHex.vertexNumber; loopi++)
+			{
+
+				if (parametricHex.vertexSign[loopi] == 1)
+				{
+
+					cout << loopi << ", ";
+				}
+
+
+			}
+			getchar();
+
+			for (int loopi = 0; loopi < parametricHex.vertexNumber; loopi++)
+			{
+
+				if (parametricHex.vertexSign[loopi] == 2)
+				{
+
+					cout << loopi << ", ";
+				}
+
+
+			}
+			getchar();
+		}
+
+*/
+
+		for (int loopi = 0; loopi < interior_point_on_edge.size(); ++loopi)
+		{
+			for (int loopj = 0; loopj < interior_point_on_edge[loopi].size(); ++loopj)
+			{
+				parametricHex.vertexSign[interior_point_on_edge[loopi][loopj]] = 2;
+				realDomainHex.vertexSign[interior_point_on_edge[loopi][loopj]] = 2;
+			}
+		}
+
+
+
+		/*tempName = inputName + "_" + std::to_string(OCTREE_MAX_LEVEL) + "_patch_hex.vtk";
+
+		realDomainHex.Write(tempName.c_str());*/
+
+
+
+		//getchar();
+
+		//remove interior corner point.
+		for (int loopi = 0; loopi < unit_cube_index.size(); loopi++)
+		{
+			parametricHex.vertexSign[unit_cube_index[loopi]] = 2;
+			realDomainHex.vertexSign[unit_cube_index[loopi]] = 2;
+		}
+
+
+		for (int loopi = 0; loopi < parametricHex.vertexNumber; loopi++)
+		{
+
+			if (parametricHex.vertexSign[loopi] == 1)
+			{
+				realDomainHex.vertexSign[loopi] == 1;
+				FindPropagationBoundElementsSurface(loopi);
+
+				/*if (i==31)
+				{
+					cout << loopi << ", ";
+				}*/
+
+			}
+
+
+		}
+
+		/*if (i==31)
+		{
+			cout << endl << "testtest" << endl;
+			getchar();
+		}*/
+		//getchar();
+		/*cout << "test_now" << endl;
+		getchar();*/
+		//parametricHex.SetBoundaryVertexSign(1);
+		for (int loopi = 0; loopi < parametricHex.vertexNumber; loopi++)
+		{
+
+			if (parametricHex.vertexSign[loopi] == 1)
+			{
+
+				/*for (int loopj = 0; loopj < 3; loopj++)
+				{
+				realDomainHex.vertex[loopi][loopj] = 0.f;
+				}*/
+				realDomainHex.vertexSign[loopi] == 1;
+
+				//cout << loopi << ", ";
+			}
+
+
+		}
+
+
+
+		//3
+
+
+		realDomainHex.SmoothInnerSurface(10000);
+		for (int loopi = 0; loopi < parametricHex.vertexNumber; loopi++)
+		{
+
+			if (parametricHex.vertexSign[loopi] == 1)
+			{
+				PropagationSurface(loopi);
+				//cout << loopi << ", ";
+			}
+
+
+		}
+
+		vector<int> smooth_index_temp;
+
+		for (int loopi = 0; loopi < parametricHex.vertexNumber; loopi++)
+		{
+			smooth_index_temp.push_back(parametricHex.vertexSign[loopi]);
+
+		}
+
+		if (smooth_index_temp.size() != parametricHex.vertexNumber)
+		{
+			cout << "define boundary type error";
+		}
+
+		smooth_index.push_back(smooth_index_temp);
+
+		realDomainHex.SmoothInnerSurface(1000);
+
+		//if (i == 31)
+		//{
+
+
+		//	for (int loopi = 0; loopi < unit_cube_index.size(); loopi++)
+		//	{
+		//		//find element matching information.
+		//		//vector<vector<int> > corner_coordinate(4);
+
+		//		cout << unit_cube_index[loopi] << ", ";
+
+
+		//		for (int loopk = 0; loopk < 3; loopk++)
+		//		{
+		//			cout << realDomainHex.vertex[unit_cube_index[loopi]][loopk] << ", ";
+		//		}
+
+
+		//		cout << endl;
+		//	}
+		//	getchar();
+		//}
+		//
+
+
+
+		parametricHex.SetBoundaryVertexSign(1);
+
+		//linear interiro point in the volume
+
+
+		realDomainHex.SetBoundaryVertexSign(1);
+
+		std::string new_string;
+
+		/*realDomainHex.Smooth(10000);
+
+		new_string = std::string(4 - std::to_string(i).length(), '0') + std::to_string(i);
+
+		tempName = inputName + "_before_0_octree_" + std::to_string(OCTREE_MAX_LEVEL) + "_patch_hex." + new_string + ".vtk";
+
+		realDomainHex.Write(tempName.c_str());*/
+
+		for (int loopi = 0; loopi < parametricHex.vertexNumber; loopi++)
+		{
+
+			if (parametricHex.vertexSign[loopi] == 0)
+			{
+				FindPropagationBoundElements(loopi);
+
+			}
+
+
+		}
+
+		HexMeshProjectionInterior();
+
+		/*if (i == 14)
+		{
+			int array_temp[3] = { 20,23,40 };
+			for (int loopi = 0; loopi < 3; loopi++) {
+				cout << propElement[array_temp[loopi]].nx << ", ";
+				cout << propElement[array_temp[loopi]].px << ", ";
+				cout << propElement[array_temp[loopi]].ny << ", ";
+				cout << propElement[array_temp[loopi]].py << ", ";
+				cout << propElement[array_temp[loopi]].nz << ", ";
+				cout << propElement[array_temp[loopi]].pz << ", ";
+				cout << endl;
+			}
+			getchar();
+		}*/
+		//cout << "here 2" << endl;
+		///Modified pxnx if the point is outside.
+
+		//remove  value close to zero
+
+		for (int loopi = 0; loopi < realDomainHex.vertexNumber; loopi++)
+		{
+			for (int loopj = 0; loopj < 3; loopj++)
+			{
+				if (abs(realDomainHex.vertex[loopi][loopj]) < EPSILON)
+				{
+					realDomainHex.vertex[loopi][loopj] = 0.0;
+				}
+			}
+
+
+		}
+
+
+		if (Debug_yu)
+		{
+			new_string = std::string(4 - std::to_string(i).length(), '0') + std::to_string(i);
+
+			tempName = inputName + "_before_octree_" + std::to_string(OCTREE_MAX_LEVEL) + "_patch_hex." + new_string + ".vtk";
+
+			realDomainHex.Write(tempName.c_str());
+		}
+
+
+
+
+		vector<vector<double >> real_hex_coordinate_temp;
+		for (int loopi = 0; loopi < realDomainHex.vertexNumber; loopi++)
+		{
+			vector<double> inner_temp;
+
+			inner_temp.assign(realDomainHex.vertex[loopi], realDomainHex.vertex[loopi] + 3);
+			real_hex_coordinate_temp.push_back(inner_temp);
+		}
+		real_hex_coordinate.push_back(real_hex_coordinate_temp);
+		vector<vector<int >> real_hex_connection_temp;
+		for (int loopi = 0; loopi < realDomainHex.elementNumber; loopi++)
+		{
+			vector<int> inner_temp_connection;
+			inner_temp_connection.assign(realDomainHex.element[loopi], realDomainHex.element[loopi] + 8);
+
+
+			real_hex_connection_temp.push_back(inner_temp_connection);
+		}
+		real_hex_connection.push_back(real_hex_connection_temp);
+
+	}
+
+	if (Debug_yu == true)
+	{
+		cout << "run here MappingReakPara before merging surface" << endl;
+	}
+
+	if (smooth_index.size() != polycube_structure_hex_.elementNumber)
+	{
+		cout << "error for polycube number." << endl;
+	}
+
+
+	//final step
+	vector<vector<int> > match_surface_index_incl_bnd;
+	match_surface_index_incl_bnd.resize(match_surface_index.size());
+	for (int loop_i = 0; loop_i < match_surface_index.size(); loop_i++)
+	{
+
+		int temp_A = match_surface_index[loop_i][0] / 6;   // polycube element ID
+		int temp_A_face = match_surface_index[loop_i][0] % 6;
+		//int temp_A_face_odd_even = temp_A_face % 2;
+		int temp_A_face_next;
+		if (temp_A_face == 0)
+		{
+			temp_A_face_next = 5;
+		}
+		else if (temp_A_face == 1)
+		{
+			temp_A_face_next = 3;
+		}
+		else if (temp_A_face == 2)
+		{
+			temp_A_face_next = 4;
+		}
+		else if (temp_A_face == 3)
+		{
+			temp_A_face_next = 1;
+		}
+		else if (temp_A_face == 4)
+		{
+			temp_A_face_next = 2;
+		}
+		else if (temp_A_face == 5)
+		{
+			temp_A_face_next = 0;
+		}
+		int boundary_surface_number_A = 0;
+		for (int loop_internal = 0; loop_internal < polycube_element_[temp_A].boundary_sign.size(); loop_internal++)
+		{
+			if (loop_internal == temp_A_face)
+			{
+				continue;
+			}
+
+			if (loop_internal == temp_A_face_next)
+			{
+				continue;
+			}
+
+
+			if (polycube_element_[temp_A].boundary_sign[loop_internal] > 0)
+			{
+				boundary_surface_number_A++;
+			}
+		}
+
+		int temp_B = match_surface_index[loop_i][1] / 6;
+		int temp_B_face = match_surface_index[loop_i][1] % 6;
+
+
+		int temp_B_face_next;
+		if (temp_B_face == 0)
+		{
+			temp_B_face_next = 5;
+		}
+		else if (temp_B_face == 1)
+		{
+			temp_B_face_next = 3;
+		}
+		else if (temp_B_face == 2)
+		{
+			temp_B_face_next = 4;
+		}
+		else if (temp_B_face == 3)
+		{
+			temp_B_face_next = 1;
+		}
+		else if (temp_B_face == 4)
+		{
+			temp_B_face_next = 2;
+		}
+		else if (temp_B_face == 5)
+		{
+			temp_B_face_next = 0;
+		}
+		int boundary_surface_number_B = 0;
+		for (int loop_internal = 0; loop_internal < polycube_element_[temp_B].boundary_sign.size(); loop_internal++)
+		{
+			if (loop_internal == temp_B_face)
+			{
+				continue;
+			}
+
+			if (loop_internal == temp_B_face_next)
+			{
+				continue;
+			}
+
+
+			if (polycube_element_[temp_B].boundary_sign[loop_internal] > 0)
+			{
+				boundary_surface_number_B++;
+			}
+		}
+		match_surface_index_incl_bnd[loop_i].push_back(match_surface_index[loop_i][0]);
+		match_surface_index_incl_bnd[loop_i].push_back(match_surface_index[loop_i][1]);
+		match_surface_index_incl_bnd[loop_i].push_back(boundary_surface_number_A);
+		match_surface_index_incl_bnd[loop_i].push_back(boundary_surface_number_B);
+		match_surface_index_incl_bnd[loop_i].push_back(-1); //used to mark whether done or not.
+		//cout << endl;
+	}
+
+	//unit_cube_index cornerpoint;
+
+	unit_cube_index_vector.clear();
+
+
+
+
+	for (int i_internal_temp = 0; i_internal_temp < 6; ++i_internal_temp)
+	{
+		vector <int > unit_cube_index_vector_temp;
+		for (int j_internal_temp = 0; j_internal_temp < 4; ++j_internal_temp)
+		{
+			unit_cube_index_vector_temp.push_back(unit_cube_index[para_index[i_internal_temp][j_internal_temp]]);
+		}
+		unit_cube_index_vector.push_back(unit_cube_index_vector_temp);
+	}
+
+	int start_boundary_number = 4;
+	bool verify_to_stop = false;
+
+	//After merging
+	//MergeInternalSurface(1, 23);  //copy 1 to 23
+
+	int coordinate_index_offset;
+	real_hex_total_coordinate.clear();
+	real_hex_total_connection.clear();
+	string tempName;
+
+	if (Debug_yu == true)
+	{
+		cout << "run here MappingReakPara before edit volume linear interpolation" << endl;
+	}
+
+	for (int loopk = 0; loopk < real_hex_coordinate.size(); loopk++)
+	{
+		for (int loopi = 0; loopi < real_hex_coordinate[loopk].size(); loopi++)
+		{
+			for (int loopj = 0; loopj < 3; loopj++)
+			{
+				realDomainHex.vertex[loopi][loopj] = real_hex_coordinate[loopk][loopi][loopj];
+			}
+		}
+
+		//deal with interior surface.
+
+
+
+
+		/*parametricHex.SetBoundaryVertexSign(1);
+		realDomainHex.SetBoundaryVertexSign(1);
+
+		for (int loopi = 0; loopi < smooth_index[loopk].size(); loopi++)
+		{
+			realDomainHex.vertexSign[loopi] = smooth_index[loopk][loopi];
+			parametricHex.vertexSign[loopi] = smooth_index[loopk][loopi];
+		}*/
+		/*if (loopk == 24)
+		{
+
+			cout << loopk << " here "<<endl;
+			for (int loopi = 0; loopi < parametricHex.vertexNumber; loopi++)
+			{
+				if (realDomainHex.vertexSign[loopi] == 1)
+				{
+					cout << loopi << ", ";
+				}
+			}
+
+			cout << loopk << " here " << endl;
+			for (int loopi = 0; loopi < parametricHex.vertexNumber; loopi++)
+			{
+				if (realDomainHex.vertexSign[loopi] == 2)
+				{
+					cout << loopi << ", ";
+				}
+			}
+			cout << endl;
+			cout << realDomainHex.vertex[49][0] << endl;
+			realDomainHex.SmoothInnerSurface(4000);
+			cout << realDomainHex.vertex[49][0] << endl;
+
+			getchar();
+		}
+*/
+
+		parametricHex.SetBoundaryVertexSign(1);
+		realDomainHex.SetBoundaryVertexSign(1);
+
+		for (int loopi = 0; loopi < realDomainHex.vertexNumber; loopi++)
+		{
+
+			if (parametricHex.vertexSign[loopi] == 0)
+			{
+				FindPropagationBoundElements(loopi);
+
+			}
+
+
+		}
+		HexMeshProjectionInterior();
+
+		std::array<int, 3> coord_index{ 0,1,2 };
+		int loop_count = 0;
+		while (true)
+		{
+			int show_problem_interior = -1;
+			//cout << "Here===========" << show_problem_interior<< endl;;
+
+			for (int loopi = 0; loopi < parametricHex.vertexNumber; loopi++)
+			{
+
+				if (parametricHex.vertexSign[loopi] != 0)
+				{
+					continue;
+				}
+
+
+				//outputCentroids<<i<<": "<<propElement[i].px<<" "<<propElement[i].nx<<" "<<propElement[i].py<<" "<<propElement[i].ny<<" "<<propElement[i].pz<<" "<<propElement[i].nz<<endl;
+
+
+				show_problem_interior = inner_angle_between_lines(loopi);//-1 no problem, 0 is nx px, 1 is ny,py
+				//cout << loopi << "  " << show_problem_interior << endl;
+				//getchar();
+				if (show_problem_interior >= 0)
+				{
+					//cout << "need to change Propagation direction!!";
+					break;
+				}
+
+
+				//Propagation(i);
+
+			}
+
+
+			if (show_problem_interior >= 0)
+			{
+				loop_count++;
+				if (loop_count >= 3)
+				{
+					break;
+				}
+				int temp_x = coord_index[0];
+
+
+				int temp_y = coord_index[1];
+
+				int temp_z = coord_index[2];
+
+				coord_index[0] = temp_z;
+				coord_index[1] = temp_x;
+				coord_index[2] = temp_y;
+				for (int loopi = 0; loopi < parametricHex.vertexNumber; loopi++)
+				{
+
+					if (parametricHex.vertexSign[loopi] != 0)
+					{
+						continue;
+					}
+
+
+
+					/*cout << "coord_index:  " << coord_index[0]
+					<< coord_index[1]
+					<< coord_index[2] << endl;*/
+
+					Propagation_wthout_initial(loopi, coord_index);
+
+					/*cout << "test___"<<loopi<<", " << propElement[loopi].nx
+					<< ", " << propElement[loopi].px
+					<< ", " << propElement[loopi].ny
+					<< ", " << propElement[loopi].py
+					<< ", " << propElement[loopi].nz
+					<< ", " << propElement[loopi].pz<<endl;*/
+
+
+					//getchar();
+				}
+
+			}
+			else
+			{
+				break;
+			}
+
+
+		}
+		std::string new_string;
+		if (Debug_yu == true)
+		{
+			cout << loopk << endl;
+
+			new_string = std::string(4 - std::to_string(loopk).length(), '0') + std::to_string(loopk);
+
+			tempName = inputName + "_octree_" + std::to_string(OCTREE_MAX_LEVEL) + "_patch_hex." + new_string + ".vtk";
+
+			realDomainHex.Write(tempName.c_str());
+		}
+
+		if (loop_count >= 3)
+		{
+			cout << "block " << loopk << " or its neighbour has irregular shape which will reduce mesh quality" << endl;
+			/*realDomainHex.SetBoundaryVertexSign(1);
+			realDomainHex.Smooth(100000);*/
+			//for (int loopi_local = 0; loopi_local < realDomainHex.vertexNumber; loopi_local++)
+			//{
+			//	if (realDomainHex.vertexSign[loopi_local])
+			//	{
+			//		cout << loopi_local << ", " ;
+			//	}
+			//}
+
+			//cout << endl;
+			////realDomainHex.Smooth(100000);
+			//getchar();
+		}
+
+		for (int loopi = 0; loopi < realDomainHex.vertexNumber; loopi++)
+		{
+			for (int loopj = 0; loopj < 3; loopj++)
+			{
+				real_hex_coordinate[loopk][loopi][loopj] = realDomainHex.vertex[loopi][loopj];
+			}
+		}
+		//following is combination
+		coordinate_index_offset = real_hex_total_coordinate.size();
+
+		for (int loopi = 0; loopi < realDomainHex.vertexNumber; loopi++)
+		{
+			vector<double> inner_temp;
+			inner_temp.assign(realDomainHex.vertex[loopi], realDomainHex.vertex[loopi] + 3);
+			real_hex_total_coordinate.push_back(inner_temp);
+		}
+
+		for (int loopi = 0; loopi < realDomainHex.elementNumber; loopi++)
+		{
+			vector<int> inner_temp_connection;
+			inner_temp_connection.assign(realDomainHex.element[loopi], realDomainHex.element[loopi] + 8);
+
+			for (int loopj = 0; loopj < inner_temp_connection.size(); loopj++)
+			{
+				inner_temp_connection[loopj] = inner_temp_connection[loopj] + coordinate_index_offset;
+			}
+
+
+			real_hex_total_connection.push_back(inner_temp_connection);
+		}
+	}
+
+	/*string test_name = inputName + "parametric_test.vtk";
+
+	parametricHex.Write(test_name.c_str());*/
+
+	nNode = real_hex_total_coordinate.size();
+	nElement = real_hex_total_connection.size();
+	RawMesh real_domain_hex_total;
+	real_domain_hex_total.CreateNewMesh(real_domain_hex_total.HEXAHEDRON, nNode, nElement);
+
+	for (int loopi = 0; loopi < nNode; loopi++)
+	{
+
+		for (int loopj = 0; loopj < 3; loopj++)
+		{
+
+			real_domain_hex_total.vertex[loopi][loopj] = real_hex_total_coordinate[loopi][loopj];
+
+		}
+
+	}
+
+	for (int loopi = 0; loopi < nElement; loopi++)
+	{
+
+		for (int loopj = 0; loopj < 8; loopj++)
+		{
+
+			real_domain_hex_total.element[loopi][loopj] = real_hex_total_connection[loopi][loopj];
+
+		}
+
+	}
+
+	real_domain_hex_total.InitiateElementValence();
+	real_domain_hex_total.InitiateEdgeValence();
+	real_domain_hex_total.DeleteUnusedVertex();
+	real_domain_hex_total.DeleteDuplicatedPoint();
+
+
+	//real_domain_hex_total.Smooth(10);
+
+	tempName = hexfilename;
+
+	real_domain_hex_total.Write(tempName.c_str());
+
+	return true;
+}
 
 
 bool PhysicalPolycube::MappingRealPara(string hexfilename)
@@ -6548,7 +7650,7 @@ bool PhysicalPolycube::MappingRealPara(string hexfilename)
 	for (i = 0; i < polycube_structure_hex_.elementNumber; ++i)
 	{
 
-		cout << "loop: " << i << endl;
+		//cout << "loop: " << i << endl;
 		polycubePara = NULL;
 
 		surface_mesh_tri_.CopyMesh(polycubePara);

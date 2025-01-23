@@ -320,7 +320,7 @@ public:
 	bool PreProcessing();
 	GeometricMethod GM;
 	bool MappingRealPara(string hexfilename);
-
+	bool MappingRealPara0(string hexfilename);
 	int MergeInternalSurface(int FromID, int ToID);
 
 	Matrix3d rotation_matrix(Vector3d vector0, Vector3d vector1);
@@ -396,6 +396,8 @@ private:
 	bool ConstructeOctree(void);
 	//bool HexMeshOctree(const char* file_name);
 	bool HexMeshOctree(void);
+
+
 
 
 	int GetDepth(int res);
